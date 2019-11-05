@@ -12,6 +12,7 @@ struct proc_info {
 int
 main(void)
 {
+    struct proc_info* mylist = malloc(NPROC * sizeof(struct proc_info));
     int rc = fork();
     if (rc < 0) {
 
@@ -35,9 +36,7 @@ main(void)
         // parent goes down this path (original process)
 
         wait();
-        struct proc_info* mylist = malloc(NPROC * sizeof(struct proc_info));
         int result = pinfo((void*)mylist);
-        printf(1, "result : %d \n", result);
         exit();
     }
 

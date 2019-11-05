@@ -561,7 +561,7 @@ pinfo(void* list)
 
       if(i == 0)
       {
-        *(items + i) = new_proc;
+        items[i] = new_proc;
       }
       else
       {
@@ -575,10 +575,10 @@ pinfo(void* list)
 
         for(int j = i; j > index; j--)
         {
-          *(items + i) = *(items + (j - 1));
+          items[i] = items[j - 1];
         }
 
-        *(items + index) = new_proc;
+        items[index] = new_proc;
 
       }
       i++;
