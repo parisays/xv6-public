@@ -22,21 +22,18 @@ main(void)
         
     } else if (rc == 0) {
 
-        // child (new process)
-        
-        int count = 0;
-        for(int i=0; i<1000 ;i++)
-            for(int j=0; j<1000; j++)
-                for(int k=0; k<1000; k++)
-                    count++;
+        pinfo(&mylist);
         exit();
 
     } else {
 
-        // parent goes down this path (original process)
-
+        // parent goes down this path (original process)        
+        int count = 0;
+        for(int i=0; i<10000 ;i++)
+            for(int j=0; j<10000; j++)
+                for(int k=0; k<10000; k++)
+                    count++;
         wait();
-        int result = pinfo((void*)mylist);
         exit();
     }
 
