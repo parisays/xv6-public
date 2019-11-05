@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "proc.h"
 
+
 int
 sys_fork(void)
 {
@@ -88,4 +89,12 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// struct proc_info *
+int
+sys_pinfo()
+{
+  struct proc_info* items;
+  return pinfo(&items);
 }
