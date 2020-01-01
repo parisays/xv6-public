@@ -89,3 +89,16 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Q2
+extern int setpriority(int);
+
+// Q2 setpriority system call, returns old priority of the process
+int
+sys_setpriority(void)
+{
+  int new_priority;
+  if(argint(0, &new_priority) < 0)
+    return -1;
+  return setpriority(new_priority);
+}

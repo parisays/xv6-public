@@ -89,6 +89,9 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  // Q2 Default Priority
+  p->priority = 60;
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -325,30 +328,43 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
+  int threshold_priority = 101;    // Q2
   
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
+    // Q2 Loop over process table to find highest priority process
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
+      if(p->priority < threshold_priority){
+          threshold_priority = p->priority;
+      }
+    }
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+    // Q2 Loop over process table to schedule highest priority process.
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+      if(p->priority == threshold_priority)
+      {
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+      }
     }
     release(&ptable.lock);
 
@@ -531,4 +547,23 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+// Q2 Change process priority
+int
+setpriority(int new_priority)
+{
+  acquire(&ptable.lock);
+  int old_priority = myproc()->priority;
+  
+  if(new_priority >= 0 && new_priority < 101)
+    myproc()->priority = new_priority;
+  else
+    return -1;
+  
+  if(new_priority < old_priority)
+    yield();
+  
+  release(&ptable.lock);
+  return old_priority;
 }
