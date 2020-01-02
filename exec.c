@@ -99,7 +99,7 @@ exec(char *path, char **argv)
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
-  curproc->priority = 60; // Q2
+  // curproc->priority = 40; // Q2
   switchuvm(curproc);
   freevm(oldpgdir);
   return 0;
