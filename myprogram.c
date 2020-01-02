@@ -6,18 +6,20 @@ int main(int argc, char *argv[])
 {
   int priority;
 
-  if (argc < 3) {
+  if (argc < 2) {
       printf(2, "Usage: myprogram [priority]\n" );
       exit();
   }
   priority = atoi(argv[1]);
 
-    if (priority < 1 || priority > 100) {
-        printf(2, "Invalid priority (1-100)!\n" );
-        exit();
-    }
+  printf(2, "you entered %d\n", priority );
 
-    setpriority(priority);
+  if (priority < 1 || priority > 100) {
+      printf(2, "Invalid priority (1-100)!\n" );
+      exit();
+  }
 
-  return 0;
+  setpriority(priority);
+
+  exit();
 }
