@@ -7,7 +7,7 @@ int main (int argc,char *argv[])
 {
 
 	int pid;
-	int status = 20, wait_time, run_time;	
+	int status = -20, wait_time, run_time;	
 	pid = fork();
 	if (pid == 0)
   {	

@@ -136,6 +136,7 @@ userinit(void)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
+  p->stime = ticks; // Q1
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
@@ -304,6 +305,7 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->stime = 0; // Q1
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;
@@ -354,6 +356,11 @@ waitx(int *wtime, int *rtime)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        // Q1
+        p->stime = 0;
+        p->rtime = 0;
+        p->iotime = 0;
+        p->etime = 0;
         release(&ptable.lock);
         return pid;
       }
