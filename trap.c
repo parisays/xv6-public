@@ -58,7 +58,7 @@ trap(struct trapframe *tf)
     // Q1
     if(myproc()) 
     {
-      if(myproc()->state == RUNNING)  // Update run timr
+      if(myproc()->state == RUNNING)  // Update run time
         myproc()->rtime++;
       else if(myproc()->state == SLEEPING)  // Update io time
         myproc()->iotime++;

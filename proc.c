@@ -116,6 +116,10 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  // Q3 setting default priority and queue number
+  p->priority = 60;
+  p->queue = 1;
+
   // Q1 setting time fields
   p->stime = ticks;         // start time
   p->etime = 0;             // end time
@@ -141,6 +145,8 @@ userinit(void)
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
   p->stime = ticks; // Q1
+  p->priority = 60; // Q3
+  p->queue = 1;     // Q3
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
@@ -213,6 +219,8 @@ fork(void)
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
+  np->priority = curproc->priority;   // Q3
+  np->queue = curproc->queue;         // Q3
 
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i])
@@ -360,6 +368,14 @@ waitx(int *wtime, int *rtime)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        // Q1
+        p->stime = 0;
+        p->rtime = 0;
+        p->iotime = 0;
+        p->etime = 0;
+        // Q3
+        p->priority = 101;
+        p->queue = 3;
         release(&ptable.lock);
         return pid;
       }
@@ -376,6 +392,102 @@ waitx(int *wtime, int *rtime)
   }
 }
 
+
+
+// Q3 First queue : Priority Scheduler
+struct proc* 
+first_queue()
+{
+  // cprintf("in first queue\n");
+  struct proc *highP =  0;
+  struct proc *temp;
+  // highP = temp;
+  // Choose one with highest priority
+  for(temp=ptable.proc; temp<&ptable.proc[NPROC]; temp++)
+  {
+      if(temp->state != RUNNABLE)
+        continue;
+      
+      // cprintf("one boom\n");
+      if(temp->queue == FIRST_QUEUE) // lower value, higher priority
+      {
+        if(highP != 0)
+        {
+          if(highP->priority > temp->priority)
+          {
+            // cprintf("one boom\n");
+            highP = temp;
+          }
+        }
+        else
+        {
+          highP = temp;
+        }
+      }
+  }
+
+  return highP;
+}
+
+// Q3 Second queue : FCFC(FIFO) RR Scheduler
+struct proc* 
+second_queue()
+{
+  // cprintf("in second queue\n");
+  struct proc *minP = 0;
+  struct proc *temp;
+  // minP = temp;
+
+  for(temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
+  {
+    if(temp->state != RUNNABLE)
+      continue;
+    // cprintf("two boom\n");
+
+    if(temp->queue == SECOND_QUEUE)
+    {
+      if(minP != 0)
+      {
+        if(minP->stime > temp->stime)
+        {
+          // cprintf("two boom\n");
+          minP = temp;
+        }
+      }
+      else
+      {
+        minP = temp;
+      }
+      
+    }
+  }
+
+  return minP;
+}
+
+// Q3 Third queue : RR scheduler
+struct proc*
+third_queue()
+{
+  // cprintf("in third queue\n");
+  struct proc *p = 0;
+  struct proc *temp;
+  // p = temp;
+  for(temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
+  {
+    if(temp->state == RUNNABLE && temp->queue == THIRD_QUEUE)
+    {
+      // cprintf("three boom\n");
+      p = temp;
+      break;
+    }
+  }
+
+  return p;
+}
+
+
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -387,6 +499,7 @@ waitx(int *wtime, int *rtime)
 void
 scheduler(void)
 {
+  // cprintf("bitch\n");
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
@@ -401,35 +514,42 @@ scheduler(void)
     p = first_queue();
     if(p == 0)
     {
+      // cprintf("not yet 1\n");
       p = second_queue();
       if(p == 0)
       {
+        // cprintf("not yet 2\n");
         p = third_queue();
         if(p == 0)
         {
+          // cprintf("not at all\n");
           release(&ptable.lock);
           continue;
         }
       }
     }
 
+    // cprintf("found a p\n");
     // Switch to chosen process.  It is the process's job
     // to release ptable.lock and then reacquire it
     // before jumping back to us.
-    c->proc = p;
-    switchuvm(p);
-    p->state = RUNNING;
+    // if(p != 0 && p->state == RUNNABLE)
+    // {
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
 
-    swtch(&(c->scheduler), p->context);
-    switchkvm();
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
 
-    // Process is done running for now.
-    // It should have changed its p->state before coming back.
-    c->proc = 0;
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+      release(&ptable.lock);
+    // }
     
-    release(&ptable.lock);
-
   }
+  
 }
 
 
@@ -647,62 +767,6 @@ procdump(void)
   }
 }
 
-
-// Q3 First queue : Priority Scheduler
-struct proc* 
-first_queue()
-{
-  struct proc *highP =  0;
-  struct proc *temp;
-  highP = temp;
-  // Choose one with highest priority
-  for(temp=ptable.proc; temp<&ptable.proc[NPROC]; temp++)
-  {
-      if(temp->state != RUNNABLE)
-        continue;
-      if(temp->queue == FIRST_QUEUE && highP->priority > temp->priority) // lower value, higher priority
-        highP = temp;
-  }
-
-  return highP;
-}
-
-// Q3 Second queue : FCFC(FIFO) RR Scheduler
-struct proc* 
-second_queue()
-{
-  struct proc *minP = 0;
-  struct proc *temp;
-  minP = temp;
-  for(temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
-  {
-    if(temp->state != RUNNABLE)
-      continue;
-    if(temp->queue == SECOND_QUEUE && minP->stime > temp->stime)
-      minP = temp;
-  }
-
-  return minP;
-}
-
-// Q3 Third queue : RR scheduler
-struct proc*
-third_queue()
-{
-  struct proc *p = 0;
-  struct proc *temp;
-  p = temp;
-  for(temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
-  {
-    if(temp->state == RUNNABLE && temp->queue == third_queue)
-    {
-      p = temp;
-      break;
-    }
-  }
-
-  return p;
-}
 
 // Q3 Change process queue and priority, returns old queue
 int
