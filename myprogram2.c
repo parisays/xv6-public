@@ -1,4 +1,4 @@
-/* RUN WITH PRIORITY BASED SCHEDULER */
+/* RUN WITH ROUND ROBIN SCHEDULER */
 #include "types.h"
 #include "stat.h"
 #include "user.h"
@@ -29,7 +29,6 @@ int main(int argc, char *argv[])
   }
 	else if (pid1 == 0)
   {	
-      int old1 = setpriority(priority1);
       printf(2,"in child 1 with old priority :%d\n", old1);
       for(int i=0; i<1000; i++)
           if(i%3 == 0 && i%7 == 0 && i%5 == 0)
@@ -38,37 +37,6 @@ int main(int argc, char *argv[])
   }
   else
  	{
-      // // setpriority(55);
-    	// int pid2 = fork();
-      // if(pid2 < 0)
-      // {
-      //   printf(1, "fork failed\n");
-      //   exit();
-      // }
-      // else if(pid2 == 0)
-      // {
-      //   setpriority(priority2);
-      //   printf(1,"in child2\n");
-      //   for(int i=0; i<1000; i++)
-      //     if(i%3 == 0 && i%7 == 0 && i%5 == 0)
-      //       printf(1, "booooo"\n");
-        
-      //   exit();
-      // }
-      // else
-      // {
-      //   // setpriority(90);
-      //   printf(1,"in parent2\n");
-      //   int wait2 = wait();
-      //   if(wait2 < 0)
-      //   {
-      //     printf(1, "wait stopped early\n");
-      //     exit();
-      //   }
-      //   // exit();
-      // }
-      
-      int old2 = setpriority(priority2);
       printf(2,"in parent 1 with old priority :%d\n",old2);
       for(int i=0; i<1000; i++)
           if(i%3 == 0 && i%7 == 0 && i%5 == 0)
