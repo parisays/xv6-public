@@ -534,7 +534,7 @@ scheduler(void)
     // before jumping back to us.
     if(p != 0 && p->state == RUNNABLE)
     {
-      cprintf("found %d %d\n",p->queue, p->priority);
+      // cprintf("found %d %d\n",p->queue, p->priority);
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;

@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
   }
 	else if (pid1 == 0)
   {	
-      // nice();
+      nice();
       for(int i=0; i<1000; i++)
           if(i%3 == 0 && i%7 == 0 && i%5 == 0)
             printf(1, "CHILD\n");
@@ -24,8 +24,8 @@ int main(int argc, char *argv[])
   }
   else
  	{
-      nice();
-      sleep(10);
+    //   nice();
+      // sleep(10);
       for(int i=0; i<1000; i++)
           if(i%3 == 0 && i%7 == 0 && i%5 == 0)
             printf(1, "PARENT\n");
