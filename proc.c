@@ -529,12 +529,12 @@ scheduler(void)
       }
     }
 
-    // cprintf("found a p\n");
     // Switch to chosen process.  It is the process's job
     // to release ptable.lock and then reacquire it
     // before jumping back to us.
-    // if(p != 0 && p->state == RUNNABLE)
-    // {
+    if(p != 0 && p->state == RUNNABLE)
+    {
+      cprintf("found %d %d\n",p->queue, p->priority);
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
@@ -545,9 +545,9 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
-      release(&ptable.lock);
-    // }
+    }
     
+    release(&ptable.lock);
   }
   
 }
@@ -807,8 +807,10 @@ nice()
 
   if(myproc()->queue <= 1)
   {
+    cprintf("old queue %d\n", myproc()->queue);
     myproc()->queue+=1;
     success = 0;
+    cprintf("new queue %d\n", myproc()->queue);
   }
 
   release(&ptable.lock);
