@@ -327,7 +327,7 @@ wait(void)
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
 void
-scheduler2(void)
+scheduler(void)
 {
   struct proc *p;
   struct proc *p1;
@@ -341,7 +341,8 @@ scheduler2(void)
     struct proc *highP =  0;
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
       if(p->state != RUNNABLE)
         continue;
 
@@ -386,7 +387,7 @@ scheduler2(void)
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
 void
-scheduler(void)
+scheduler2(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
