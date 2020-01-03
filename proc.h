@@ -54,6 +54,9 @@ struct proc {
   int etime;                   // End time
   int iotime;                  // IO time
   int rtime;                   // Total run time
+  // Q3
+  uint priority;               // Process riority
+  uint queue;                  // Process queue number
 
 };
 

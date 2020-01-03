@@ -105,3 +105,27 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Q3
+// extern int setpq(int, int);
+
+// Q3 setpq system call, returns old queue number of the process
+int
+sys_setpq(void)
+{
+  int queue, priority;
+  if(argint(0, &queue) < 0)
+    return -1;
+  if(argint(1, &priority) < 0)
+    return -1;
+
+  return setpq(queue, priority);
+}
+
+// Q3 nice system call, decrease process priority (move to lower queue)
+int
+sys_nice(void)
+{
+  return nice();
+}
+

@@ -21,3 +21,5 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_waitx  22   // Q1
+#define SYS_setpq  23   // Q3  
+#define SYS_nice   24   // Q3

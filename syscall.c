@@ -104,6 +104,8 @@ extern int sys_wait(void);
 extern int sys_waitx(void); // Q1
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_setpq(void);  // Q3
+extern int sys_nice(void);   // Q3
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -128,6 +130,9 @@ static int (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_waitx]   sys_waitx, // Q1
+[SYS_setpq]   sys_setpq, // Q3
+[SYS_nice]    sys_nice,  // Q3
+
 };
 
 void
