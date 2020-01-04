@@ -488,7 +488,7 @@ scheduler2(void)
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
 void
-scheduler2(void)
+scheduler3(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
@@ -741,7 +741,7 @@ setpriority(int new_priority)
   if(new_priority >= 0 && new_priority < 101)
   {
     myproc()->priority = new_priority;
-    cprintf("new priority %d \n", new_priority);
+    // cprintf("new priority %d \n", new_priority);
   }
 
   release(&ptable.lock);

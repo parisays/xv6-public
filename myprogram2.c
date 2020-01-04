@@ -29,7 +29,6 @@ int main(int argc, char *argv[])
   }
 	else if (pid1 == 0)
   {	
-      printf(2,"in child 1 with old priority :%d\n", old1);
       for(int i=0; i<1000; i++)
           if(i%3 == 0 && i%7 == 0 && i%5 == 0)
             printf(1, "CHILD\n");
@@ -37,7 +36,6 @@ int main(int argc, char *argv[])
   }
   else
  	{
-      printf(2,"in parent 1 with old priority :%d\n",old2);
       for(int i=0; i<1000; i++)
           if(i%3 == 0 && i%7 == 0 && i%5 == 0)
             printf(1, "PARENT\n");
