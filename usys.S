@@ -30,3 +30,4 @@ SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
 SYSCALL(setpriority)  // Q2
+SYSCALL(waitx)  // Q1

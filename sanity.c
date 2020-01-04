@@ -34,10 +34,10 @@ main(int argc, char *argv[])
                     setpriority(30);
 					break;
 				case 1:
-                    setpq(1, 80); // set to FCFS
+                    setpriority(60);
 					break;
 				case 2:
-                    nice(); // redue to RR
+                    setpriority(90);
 					break;
 			}
             for (k = 0; k < 100; k++)
@@ -58,17 +58,17 @@ main(int argc, char *argv[])
 		switch(res) 
         {
 			case 0: // CPU bound processes
-				printf(1, "Queue 0, pid: %d, wait time: %d, run time: %d\n", pid, wtime, rtime);
+				printf(1, "Priority 30, pid: %d, wait time: %d, run time: %d\n", pid, wtime, rtime);
 				sums[0][0] += wtime;
 				sums[0][1] += rtime;
 				break;
 			case 1: // CPU bound processes, short tasks
-				printf(1, "Queue 1, pid: %d, wait time: %d, run time: %d\n", pid, wtime, rtime);
+				printf(1, "Priority 60 pid: %d, wait time: %d, run time: %d\n", pid, wtime, rtime);
 				sums[1][0] += wtime;
 				sums[1][1] += rtime;
 				break;
 			case 2: // simulating I/O bound processes
-				printf(1, "Queue 2, pid: %d, wait time: %d, run time: %d\n", pid, wtime, rtime);
+				printf(1, "Priority 90, pid: %d, wait time: %d, run time: %d\n", pid, wtime, rtime);
 				sums[2][0] += wtime;
 				sums[2][1] += rtime;
 				break;
@@ -79,8 +79,8 @@ main(int argc, char *argv[])
 
     for (i = 0; i < 3; i++)
     {
-        printf(1, "Queue %d:\nTotal wait time: %d | Average wait time: %d\nTotal running time: %d | Average running time: %d\n",
-            i, sums[i][0], sums[i][0]/n, sums[i][1], sums[i][1]/n);
+        printf(1, "Priority %d:\nTotal wait time: %d | Average wait time: %d\nTotal running time: %d | Average running time: %d\n",
+            (i+1)*30, sums[i][0], sums[i][0]/n, sums[i][1], sums[i][1]/n);
     }
     
 	exit();

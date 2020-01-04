@@ -115,6 +115,12 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  // Q1 setting time fields
+  p->stime = ticks;         // start time
+  p->etime = 0;             // end time
+  p->rtime = 0;             // run time
+  p->iotime = 0;            // I/O time
+
   return p;
 }
 
@@ -133,6 +139,7 @@ userinit(void)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
+  p->stime = ticks; // Q1
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
@@ -267,6 +274,10 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+
+  // Q1 update end time
+  curproc->etime = ticks;
+  
   sched();
   panic("zombie exit");
 }
@@ -298,8 +309,63 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->stime = 0; // Q1
+        p->state = UNUSED;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+}
+
+// Q1
+int
+waitx(int *wtime, int *rtime)
+{
+  struct proc *p;
+  int havekids, pid;
+  struct proc *curproc = myproc();
+  
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != curproc)
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE){
+        // Found one.
+
+        // Q1 update wait time and run time 
+        *wtime = p->etime - p->stime - p->rtime - p->iotime;
+        *rtime = p->rtime;
+
+        // Same as wait system call
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
         p->state = UNUSED;
         p->priority = 101;  // Q2
+        // Q1
+        p->stime = 0;
+        p->rtime = 0;
+        p->iotime = 0;
+        p->etime = 0;
         release(&ptable.lock);
         return pid;
       }
