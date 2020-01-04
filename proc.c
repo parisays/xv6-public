@@ -807,10 +807,10 @@ nice()
 
   if(myproc()->queue <= 1)
   {
-    cprintf("old queue %d\n", myproc()->queue);
+    // cprintf("old queue %d\n", myproc()->queue);
     myproc()->queue+=1;
     success = 0;
-    cprintf("new queue %d\n", myproc()->queue);
+    // cprintf("new queue %d\n", myproc()->queue);
   }
 
   release(&ptable.lock);
