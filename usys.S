@@ -29,3 +29,6 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+SYSCALL(waitx)  // Q1
+SYSCALL(setpq)  // Q3
+SYSCALL(nice)   // Q3

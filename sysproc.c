@@ -26,6 +26,22 @@ sys_wait(void)
   return wait();
 }
 
+// Q1
+int 
+sys_waitx(void)
+{
+  int *wtime;
+  int *rtime;
+  
+  if(argptr(0, (char**)&wtime, sizeof(int)) < 0)
+    return -1;
+
+  if(argptr(1, (char**)&rtime, sizeof(int)) < 0)
+    return -1;
+
+  return waitx(wtime, rtime);
+}
+
 int
 sys_kill(void)
 {
@@ -89,3 +105,27 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Q3
+// extern int setpq(int, int);
+
+// Q3 setpq system call, returns old queue number of the process
+int
+sys_setpq(void)
+{
+  int queue, priority;
+  if(argint(0, &queue) < 0)
+    return -1;
+  if(argint(1, &priority) < 0)
+    return -1;
+
+  return setpq(queue, priority);
+}
+
+// Q3 nice system call, decrease process priority (move to lower queue)
+int
+sys_nice(void)
+{
+  return nice();
+}
+

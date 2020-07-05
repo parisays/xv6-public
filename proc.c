@@ -7,6 +7,10 @@
 #include "proc.h"
 #include "spinlock.h"
 
+uint FIRST_QUEUE = 0;
+uint SECOND_QUEUE = 1;
+uint THIRD_QUEUE = 2;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -112,6 +116,16 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  // Q3 setting default priority and queue number
+  p->priority = 60;
+  p->queue = 1;
+
+  // Q1 setting time fields
+  p->stime = ticks;         // start time
+  p->etime = 0;             // end time
+  p->rtime = 0;             // run time
+  p->iotime = 0;            // I/O time
+
   return p;
 }
 
@@ -130,6 +144,9 @@ userinit(void)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
+  p->stime = ticks; // Q1
+  p->priority = 60; // Q3
+  p->queue = 1;     // Q3
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
@@ -202,6 +219,8 @@ fork(void)
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
+  np->priority = curproc->priority;   // Q3
+  np->queue = curproc->queue;         // Q3
 
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i])
@@ -263,6 +282,10 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+
+  // Q1 update end time
+  curproc->etime = ticks;
+  
   sched();
   panic("zombie exit");
 }
@@ -294,6 +317,7 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->stime = 0; // Q1
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;
@@ -311,6 +335,159 @@ wait(void)
   }
 }
 
+// Q1
+int
+waitx(int *wtime, int *rtime)
+{
+  struct proc *p;
+  int havekids, pid;
+  struct proc *curproc = myproc();
+  
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != curproc)
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE){
+        // Found one.
+
+        // Q1 update wait time and run time 
+        *wtime = p->etime - p->stime - p->rtime - p->iotime;
+        *rtime = p->rtime;
+
+        // Same as wait system call
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->state = UNUSED;
+        // Q1
+        p->stime = 0;
+        p->rtime = 0;
+        p->iotime = 0;
+        p->etime = 0;
+        // Q3
+        p->priority = 101;
+        p->queue = 3;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+}
+
+
+
+// Q3 First queue : Priority Scheduler
+struct proc* 
+first_queue()
+{
+  // cprintf("in first queue\n");
+  struct proc *highP =  0;
+  struct proc *temp;
+  // highP = temp;
+  // Choose one with highest priority
+  for(temp=ptable.proc; temp<&ptable.proc[NPROC]; temp++)
+  {
+      if(temp->state != RUNNABLE)
+        continue;
+      
+      // cprintf("one boom\n");
+      if(temp->queue == FIRST_QUEUE) // lower value, higher priority
+      {
+        if(highP != 0)
+        {
+          if(highP->priority > temp->priority)
+          {
+            // cprintf("one boom\n");
+            highP = temp;
+          }
+        }
+        else
+        {
+          highP = temp;
+        }
+      }
+  }
+
+  return highP;
+}
+
+// Q3 Second queue : FCFC(FIFO) RR Scheduler
+struct proc* 
+second_queue()
+{
+  // cprintf("in second queue\n");
+  struct proc *minP = 0;
+  struct proc *temp;
+  // minP = temp;
+
+  for(temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
+  {
+    if(temp->state != RUNNABLE)
+      continue;
+    // cprintf("two boom\n");
+
+    if(temp->queue == SECOND_QUEUE)
+    {
+      if(minP != 0)
+      {
+        if(minP->stime > temp->stime)
+        {
+          // cprintf("two boom\n");
+          minP = temp;
+        }
+      }
+      else
+      {
+        minP = temp;
+      }
+      
+    }
+  }
+
+  return minP;
+}
+
+// Q3 Third queue : RR scheduler
+struct proc*
+third_queue()
+{
+  // cprintf("in third queue\n");
+  struct proc *p = 0;
+  struct proc *temp;
+  // p = temp;
+  for(temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
+  {
+    if(temp->state == RUNNABLE && temp->queue == THIRD_QUEUE)
+    {
+      // cprintf("three boom\n");
+      p = temp;
+      break;
+    }
+  }
+
+  return p;
+}
+
+
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -321,6 +498,63 @@ wait(void)
 //      via swtch back to the scheduler.
 void
 scheduler(void)
+{
+  // cprintf("bitch\n");
+  struct proc *p;
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
+
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+    // Q3
+    p = first_queue();
+    if(p == 0)
+    {
+      // cprintf("not yet 1\n");
+      p = second_queue();
+      if(p == 0)
+      {
+        // cprintf("not yet 2\n");
+        p = third_queue();
+        if(p == 0)
+        {
+          // cprintf("not at all\n");
+          release(&ptable.lock);
+          continue;
+        }
+      }
+    }
+
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    if(p != 0 && p->state == RUNNABLE)
+    {
+      // cprintf("found %d %d\n",p->queue, p->priority);
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+    
+    release(&ptable.lock);
+  }
+  
+}
+
+
+void
+scheduler2(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
@@ -531,4 +765,54 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+
+// Q3 Change process queue and priority, returns old queue
+int
+setpq(int new_queue, int new_priority)
+{
+  int old_priority = -1;
+  int old_queue = -1;
+  acquire(&ptable.lock);
+
+  old_priority  = myproc()->priority;
+  old_queue = myproc()->queue;
+  // cprintf("old priority %d \n", old_priority);
+  if(new_priority >= 0 && new_priority < 101 && new_queue >= 0 && new_queue < 3)
+  {
+    myproc()->queue = new_queue;
+    myproc()->priority = new_priority;
+    // cprintf("new priority %d \n", new_priority);
+  }
+
+  release(&ptable.lock);
+
+  if((new_queue == 0 && new_priority < old_priority) || new_queue < old_queue)
+  {
+    // cprintf("yielding\n");
+    yield();
+  }
+    
+  return old_queue;
+}
+
+// Q3 Decrease process priority (move to lower queue)
+// returns 0 on success -1 on failure
+int
+nice()
+{
+  int success = -1;
+  acquire(&ptable.lock);
+
+  if(myproc()->queue <= 1)
+  {
+    // cprintf("old queue %d\n", myproc()->queue);
+    myproc()->queue+=1;
+    success = 0;
+    // cprintf("new queue %d\n", myproc()->queue);
+  }
+
+  release(&ptable.lock);
+  return success;
 }
