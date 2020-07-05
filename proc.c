@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
+// Process table.
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -532,3 +533,66 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+
+
+int
+pinfo(void* list)
+{
+  
+  struct proc_info *items = (struct proc_info *) list;
+  struct proc *current_p;
+  int i = 0;
+  int index = 0;
+  int flag = 0;
+
+  acquire(&ptable.lock);
+
+  for(current_p = ptable.proc; current_p < &ptable.proc[NPROC]; current_p++)
+  {
+
+    if (current_p->state == RUNNING || current_p->state == RUNNABLE)
+    {
+      struct proc_info new_proc = { .pid = current_p->pid,
+                                .memsize = (int)current_p->sz
+                                };
+
+      flag = 1;
+
+      if(i == 0)
+      {
+        items[i] = new_proc;
+      }
+      else
+      {
+        index = i - 1;
+        while(index >= 0 && items[index].memsize > new_proc.memsize)
+        {
+          index--;
+        }
+
+        index++;
+
+        for(int j = i; j > index; j--)
+        {
+          items[i] = items[j - 1];
+        }
+
+        items[index] = new_proc;
+
+      }
+      i++;
+      
+    }
+  }
+
+  release(&ptable.lock);
+
+  for(int k=0; k<i; k++)
+  {
+    cprintf("id : %d | memsize : %d \n", items[k].pid, items[k].memsize);
+  }
+
+  return flag;
+}
+
