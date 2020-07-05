@@ -26,6 +26,22 @@ sys_wait(void)
   return wait();
 }
 
+// Q1
+int 
+sys_waitx(void)
+{
+  int *wtime;
+  int *rtime;
+  
+  if(argptr(0, (char**)&wtime, sizeof(int)) < 0)
+    return -1;
+
+  if(argptr(1, (char**)&rtime, sizeof(int)) < 0)
+    return -1;
+
+  return waitx(wtime, rtime);
+}
+
 int
 sys_kill(void)
 {
@@ -88,4 +104,17 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// Q2
+extern int setpriority(int);
+
+// Q2 setpriority system call, returns old priority of the process
+int
+sys_setpriority(void)
+{
+  int new_priority;
+  if(argint(0, &new_priority) < 0)
+    return -1;
+  return setpriority(new_priority);
 }
